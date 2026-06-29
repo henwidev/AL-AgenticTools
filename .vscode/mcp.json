@@ -1,0 +1,26 @@
+{
+	"servers": {
+		"microsoft/azure-devops-mcp": {
+			"url": "https://mcp.dev.azure.com/tegosgroup",
+			"type": "http",
+		},
+		"microsoftdocs/mcp": {
+			"type": "http",
+			"url": "https://learn.microsoft.com/api/mcp",
+		},
+		"al-symbols-mcp": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"al-mcp-server"
+			]
+		},
+		"bc-code-intel": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"bc-code-intelligence-mcp"
+			]
+		}
+	},
+}
