@@ -14,6 +14,7 @@ description: >-
   functional documentation, spec vs code, branch vs master/main, work item.
 argument-hint: "Paste the specification (and, for updates, the existing documentation); optional: base branch, internal comment"
 tools: [read, edit, search, execute, agent, bc-code-intel/analyze_al_code, bc-code-intel/ask_bc_expert, bc-code-intel/find_bc_knowledge, bc-code-intel/get_bc_topic, bc-code-intel/get_workspace_info, bc-code-intel/set_workspace_info]
+agents: ["AL Changelog Writer"]
 handoffs:
   - label: "Review documentation against spec and code"
     agent: "AL PR Alignment Reviewer"
@@ -22,6 +23,9 @@ handoffs:
       Run the three-way AL PR alignment review (Specification ↔ Documentation,
       Specification ↔ Code, Code ↔ Documentation) using this documentation, the
       specification, and the committed branch diff, and report every divergence.
+      Hand over the resolved **document number**, the **base ref / base branch**, and the
+      **documentation file path** (`docs/{DOCUMENT-NUMBER}-{lang}.md`) so the reviewer can
+      reuse them instead of re-resolving the document number.
     send: false
 user-invocable: true
 ---
@@ -149,6 +153,12 @@ plus a language suffix:
 6. **Do not start Phase B** until the user clearly confirms. If the user instead asks for
    code changes or disputes a difference, address that first; do not write documentation
    over unconfirmed differences.
+7. **Capture the commit scope from the confirmation.** When the user confirms, also record
+   the **scope they state** (e.g. "only this file will be committed", "ignore the ❌
+   items"). In Phase B you document **only** changes within that confirmed scope. Any
+   change the user excludes — including uncommitted work-in-progress and binary layout
+   files — must not be described, even though it appears in the `branch-workspace-diff`
+   output. If the stated scope is unclear, ask before writing.
 
 ### Phase A pre-report self-check (gate — all must be true)
 
@@ -186,6 +196,16 @@ banner lines or the bilingual headings.
   corresponding content into the appropriate section(s) above.
 - Describe new fields, calculations, and process steps concretely (how they are used),
   but keep it functional/customer-facing — not a code walk-through.
+- **Do not insert hard line breaks inside a paragraph to wrap text at a fixed column.**
+  Write each paragraph as a single continuous line and let it wrap naturally, so the
+  documentation prints cleanly. Keep the `=====` banner lines, the blank lines between
+  sections, and genuine list items (bullets) on their own lines as shown.
+- **Binary layout files (`.docx`, `.rdlc`, Word/RDLC layouts) are opaque — their contents
+  are NOT visible in any diff.** Never assert that a field was *placed, printed, rendered,
+  or shown* in a layout. Document only what the AL diff provably shows (e.g. a column/field
+  added to the report dataset). At most, state that a field is "made available in the
+  dataset so it can be used in the layout". Do not document a binary layout change the user
+  has excluded from scope.
 - **Write the documentation to `docs/{DOCUMENT-NUMBER}-{lang}.md`** (see "Resolve the
   target file"): create the file (and the `docs/` folder) when it does not exist; in
   update mode, update that same file in place while preserving still-valid content.
@@ -217,7 +237,12 @@ concept, list them here.]
 Einschränkungen // Limitations:
 ==================================================
 [If further limitations are identified during development that are associated with the
-use of the new functionality, note them here.]
+use of the new functionality, note them here. A limitation is a real, *new* restriction on
+the intended functionality. Removing, disabling, or correcting behaviour that was never
+meant to work — i.e. the very bug or erroneous behaviour the development fixes — is NOT a
+limitation: do not phrase a fix as a loss ("no longer synchronized", "can no longer …")
+when the prior behaviour was itself the defect. If the only "limitation" you can think of
+is the absence of the erroneous behaviour, the section is not applicable — remove it.]
 
 ==================================================
 Datenkorrektur // Correction of data:
@@ -243,6 +268,37 @@ the content should also be inserted at the appropriate place above. For document
 created from scratch, this section contains a single "/".]
 ```
 
+### Changelog (AL Changelog Writer subagent)
+
+After the documentation file is written, ensure the ticket's changelog entry exists by
+invoking the **AL Changelog Writer** as a **subagent** (it is listed in this agent's
+`agents`). Do this in Phase B, only after the user confirmed the Phase A differences.
+
+- The changelog lives at `changelogs/{DOCUMENT-NUMBER}.md` — the **same document number**
+  as the documentation, but **without** the `-{lang}` suffix.
+- **Always invoke the subagent; it reconciles internally.** It creates the file when it
+  does not exist, appends a line only when an in-scope change is not yet captured, and
+  writes nothing when the changelog is already up to date. This covers both "create it if
+  it did not exist" and "check whether it needs adjusting" (relevant in update mode).
+- **Hand the subagent everything it needs**, so it neither re-derives nor re-asks:
+  - the resolved **document number**,
+  - the **base ref / base branch** you used,
+  - the **confirmed commit scope** from Phase A (which changes are in scope and which the
+    user excluded), and
+  - a concise **functional summary** of the in-scope change(s), taken from the
+    documentation you just wrote.
+- **Restrict the changelog to the same confirmed commit scope.** Its one-liner must
+  describe only the in-scope changes — never excluded uncommitted work or binary layouts.
+- If the subagent cannot resolve the document number, or the scope is unclear, surface
+  that to the user instead of guessing.
+- Report the changelog outcome (path, created / appended / already up to date, and the
+  exact one-liner) in your Phase B closing note.
+
+The AL Changelog Writer can also be run on its own. When it is **not** invoked as this
+agent's subagent, it collects the change data itself (via the `branch-workspace-diff`
+skill) and asks the user for anything missing — so a manual run still works without this
+hand-over.
+
 ## Constraints
 
 - DO NOT write any documentation before the user has **confirmed** that the Phase A
@@ -257,13 +313,31 @@ created from scratch, this section contains a single "/".]
 - DO ask the user where a change belongs when it does not fit any section, instead of
   forcing or inventing one.
 - DO NOT invent specification requirements, code changes, setup steps, limitations, or
-  objects you cannot point to in the specification or in one of the two diffs.
+  objects you cannot point to in the specification or in one of the two diffs. This
+  explicitly includes the **contents of binary layout files** (`.docx`, `.rdlc`): a layout
+  showing as modified in `git status` does not tell you what changed inside it. Do not
+  infer downstream behaviour (printing, rendering, UI placement) from a change you cannot
+  read in the AL diff.
+- DO restrict the documentation to the **commit scope the user confirmed in Phase A**.
+  Changes the user excluded (out-of-scope uncommitted work, binary layouts, unrelated
+  objects) must not be described, even if the `branch-workspace-diff` output contains them.
+- DO NOT frame a bug fix as a limitation or as lost functionality. When the development
+  removes or corrects behaviour that was never intended to work (the defect itself),
+  describe the corrected, intended behaviour — never present the disappearance of the
+  erroneous behaviour as a downside (e.g. "is no longer synchronized", "can no longer …").
+  Before writing a Limitations entry, verify the restriction applies to the *intended*
+  functionality; if it merely restates the removal of the bug, omit it and remove the
+  section if it is then empty.
 - DO NOT treat the internal comment as a source of truth that can create requirements; it
   may only **excuse** a Phase A difference (marking it ☑️ instead of ❌), and only when it
   *explicitly* explains that exact difference.
 - DO write documentation only into `docs/{DOCUMENT-NUMBER}-{lang}.md` next to the
   `changelogs/` folder; never invent another path. Do not write documentation for changes
   confined to test-folder AL files.
+- DO invoke the **AL Changelog Writer** subagent in Phase B to create or reconcile
+  `changelogs/{DOCUMENT-NUMBER}.md`, handing it the document number, base ref, confirmed
+  commit scope, and functional summary; restrict its one-liner to the same confirmed scope
+  and report its outcome. Never write the changelog file yourself.
 - For the **committed** branch diff, DO NOT obtain changes from the `get_changed_files`
   tool, the VS Code Source Control "Changes" view, `git status`, `git diff HEAD`, or a
   bare `git diff` — the `branch-workspace-diff` skill collects it via `git-branch-diff`.
@@ -308,5 +382,8 @@ followed by a short closing note that:
 - lists any changes you could not place and the question you asked the user about them;
 - states the **target file path** (`docs/{DOCUMENT-NUMBER}-{lang}.md`) and whether it was
   **created** or **updated**;
+- reports the **changelog outcome** from the AL Changelog Writer subagent: the file path
+  (`changelogs/{DOCUMENT-NUMBER}.md`), whether it was **created**, **appended**, or was
+  **already up to date**, and the exact one-liner if one was written;
 - offers a handoff to the **AL PR Alignment Reviewer** to verify the documentation against
   the specification and the code.

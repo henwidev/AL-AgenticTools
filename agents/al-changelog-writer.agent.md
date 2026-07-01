@@ -36,6 +36,30 @@ scope (`-- "*.al"`). The committed part must never come from `git status`, a bar
 `git diff`, or a changed-files view; the uncommitted part is the deliberate exception the
 skill collects for you. Both inputs are valid and required.
 
+## Running standalone vs. as a subagent
+
+You may be invoked **standalone** (directly by the user) or **as a subagent of the AL
+Documentation Writer**. Either way you must end up with the same four pieces of
+information — the **document number**, the **base ref**, the **commit scope**, and the
+**functional change(s)** — but where they come from differs:
+
+- **As a subagent**, the AL Documentation Writer hands these over: the resolved
+  **document number**, the **base ref / base branch**, the **confirmed commit scope**
+  (which changes are in scope and which the user excluded), and a concise **functional
+  summary** of the in-scope change(s). Use the handed-over values instead of re-deriving
+  them, and **restrict your one-liner to the confirmed commit scope** — never describe a
+  change the parent marked out of scope (e.g. excluded uncommitted work or binary layout
+  files). You may still consult the `branch-workspace-diff` skill for wording detail, but
+  the scope the parent confirmed wins.
+- **Standalone**, nothing is handed over: resolve the document number via the
+  `document-number` skill, collect the change data yourself via the `branch-workspace-diff`
+  skill, and **ask the user** for anything missing or ambiguous (e.g. the base branch, or
+  which changes are in scope when the workspace clearly contains unrelated work in
+  progress).
+
+If a handed-over value is missing or contradicts what you see in the diff, ask rather than
+assume.
+
 ## Approach
 
 1. **Resolve the document number** for the file name:
@@ -82,6 +106,9 @@ skill collects for you. Both inputs are valid and required.
 
 ## One-liner style rules
 
+- **Always write the changelog in English**, regardless of the language of the
+  specification, the documentation, or any handed-over functional summary. Translate the
+  effect into English when your source material is in another language (e.g. German).
 - Start the line with `" - "` (space, dash, space).
 - Audience is **changelog readers and customers** — keep it **non-technical** and concise.
 - Describe **what changed and the effect**, not the implementation (no object names, field
@@ -103,6 +130,8 @@ These apply **only** to the changelog written into the test app's `changelogs/` 
 when the branch changes test-folder AL files. The test changelog describes the **testing
 work delivered**, not a customer-facing feature.
 
+- **Always write it in English** (same as the app changelog), regardless of the source
+  language.
 - Start the line with `" - "` (space, dash, space) and **end it with a period**.
 - Open with a phrasing **like** "Implemented automated tests for …" (variants such as
   "Added automated tests for …" / "Extended automated test coverage for …" are fine).
@@ -115,6 +144,8 @@ work delivered**, not a customer-facing feature.
 
 ## Constraints
 
+- ALWAYS write the changelog (app and test) in **English**, even when the specification,
+  documentation, or handed-over summary is in another language.
 - DO NOT modify any AL or other source files — only the changelog file in `changelogs/`.
 - DO NOT overwrite or delete existing changelog content; only append when the file exists.
 - DO NOT write to the root `changelog.md`.
@@ -124,6 +155,10 @@ work delivered**, not a customer-facing feature.
 - DO NOT invent changes that are not present in either diff.- DO read the existing changelog file first and only append effects that are not already
    described there; never duplicate or rephrase a change that is already captured.- DO default to a single one-liner; only split into multiple lines for vastly different
   processes or requirements, never just because multiple objects changed.
+- WHEN invoked as a subagent of the AL Documentation Writer, DO use the handed-over
+  document number, base ref, commit scope, and functional summary, and DO restrict your
+  one-liner to that confirmed scope — never describe a change the parent excluded. WHEN run
+  standalone, collect the data yourself and ask the user for anything missing or ambiguous.
 - DO write a **separate** test changelog into the test app's `changelogs/` folder when the
   branch changes test-folder AL files, using the "Implemented automated tests for …"
   phrasing — never reuse the customer-facing app one-liner there.

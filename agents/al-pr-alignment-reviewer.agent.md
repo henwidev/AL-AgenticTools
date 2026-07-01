@@ -67,15 +67,25 @@ diff, discard that finding and redo it from the skill output.
 2. **The specification**: the task description. Assume it is **pasted in chat** or
    **handed over by a parent agent/skill** that fetched it (e.g. from Azure DevOps).
    This agent does not fetch work items itself.
-3. **The documentation**: the docs describing the changed feature, also **pasted in
-   chat** or **handed over by a parent agent/skill**. This agent does not search the
-   repo for documentation.
+3. **The documentation**: the docs describing the changed feature, **pasted in chat** or
+   **handed over by a parent agent/skill**. If it is **not** provided that way, **read it
+   from the `docs/` folder**, where the AL Documentation Writer writes it: resolve the
+   document number — **preferring one handed over by a parent agent** (e.g. the AL
+   Documentation Writer, which already resolved it), and only falling back to the
+   `document-number` skill when none was handed over — then open
+   `docs/{DOCUMENT-NUMBER}-{lang}.md` (prefer the language that matches the specification;
+   if only one language file exists, use it). If the parent handed over the documentation
+   **file path** directly, just read that. State which file you used. Reading the
+   documentation file from the working tree is fine — the committed-diff-only rule applies
+   to the **code**, not to the documentation artifact. Only treat the documentation as
+   missing when it is provided nowhere **and** no `docs/` file exists.
 4. **The internal comment** (optional): developer/team notes explaining deliberate
    deviations or decisions, also **pasted in chat** or **handed over**. When present,
    use it only to *excuse* an otherwise-flagged difference (☑️), never to invent or
    replace a requirement. Its absence is not an error — simply review without it.
 
-If the specification or documentation is missing, ask the user for it before reviewing.
+If the specification is missing, ask the user for it before reviewing. If the documentation
+is neither provided nor found in `docs/`, ask the user for it (or confirm none exists).
 Never guess the specification or invent documentation that does not exist. The internal
 comment is optional; do not ask for it if it was not provided.
 
@@ -100,8 +110,14 @@ comment is optional; do not ask for it if it was not provided.
      skill's committed diff** — the working tree may be dirty.
 2. **Collect the specification**: read the pasted text or the hand-off from the parent
    agent (description + acceptance criteria).
-3. **Collect the documentation**: read the pasted documentation or the hand-off from
-   the parent agent.
+3. **Collect the documentation**: use the pasted documentation or the hand-off from the
+   parent agent. If neither is given, resolve the document number — **using one handed
+   over by the parent agent if available, otherwise the `document-number` skill** — and
+   read `docs/{DOCUMENT-NUMBER}-{lang}.md` from the repo (or the documentation file path
+   the parent handed over directly; prefer the spec's language; if only one language file
+   exists, use it). Record which file you used. Reading this file from the working tree is
+   acceptable — the committed-diff-only rule is about the code, not the documentation. Only
+   treat the documentation as missing if it is provided nowhere and no `docs/` file exists.
 4. **Collect the internal comment** (if provided): read the pasted internal comment.
 5. **Extract discrete claims** from each source — each spec requirement, each documented
    behaviour, and each concrete code change become individually checkable items. Also
