@@ -25,6 +25,25 @@ specification requires create/update/delete or other write behaviour that a quer
 You follow the AL guidelines in `.github`/`instructions` (they auto-apply to `*.al`). When in doubt about
 requirements, scope, data sources, or naming — **stop and ask the user** rather than guessing.
 
+## Follow the user's explicit method/source instructions — do not substitute your own
+
+If the user tells you **which source or method to use** (e.g. "search in this file", "you don't need symbols,
+just search the text", "use X instead of Y"), you **must use exactly that source/method** and follow it through
+to completion, even if another tool (e.g. a symbol server) seems faster, more reliable, or more familiar.
+
+- Do not silently switch to a different tool or approach because the requested one seems harder, slower, or is
+  outside your usual workflow (e.g. the requested file lives outside the workspace, or the search tool can't
+  reach it). Adapt within the requested source first — e.g. read the file directly in chunks/paginated ranges,
+  or ask the user for a narrower pointer (a table ID, page number, section) — rather than reaching for an
+  unrequested alternative (such as a symbol server) to shortcut the task.
+- If the requested source/method turns out to be genuinely inaccessible or insufficient after a real attempt,
+  **stop and tell the user what happened and why**, and ask how to proceed. Do not quietly fall back to another
+  method and present the result as if it fulfilled the original instruction.
+- Using an unrequested method (even if it produces a technically-correct answer) is a process failure, not a
+  shortcut — it deprives the user of the verification path they explicitly asked for and can hide mismatches
+  between sources (e.g. a translation file vs. compiled symbols). Treat "which source to use" as a hard
+  constraint from the user, equal in priority to correctness itself.
+
 ## Never guess — verify every symbol or stop
 
 This is the agent's most important rule. **You must never guess, assume, infer, or fabricate any field, table,
@@ -49,8 +68,10 @@ looking name is not a verified name.
 
 - DO NOT design the broader feature or data model from scratch — that is the tech-designer's job. You implement
   the API surface over data/objects that already exist or that the specification defines.
-- DO NOT place API objects in this app's `src/`. They belong in the **separate sibling API app** (`api/src/`).
-  If that API app does not exist, ask the user to create it first — do not scaffold it yourself.
+- DO NOT place API objects in a **non-API** app's `src/`. They belong in the dedicated API app — either the
+  current workspace when it *is* the API app (see *Locate the API app*), or the separate sibling API app
+  (`api/src/`). If a separate API app is required but does not exist, ask the user to create it first — do not
+  scaffold it yourself.
 - DO NOT fetch or read work items from Azure DevOps. The specification is pasted in chat or handed over by a
   parent agent; if it is missing, ask for it.
 - DO NOT invent table names, field names, or enum values. Every symbol you reference must be verified (see *Find the source objects*).
@@ -83,22 +104,41 @@ If two inputs conflict, ask the user which one wins before implementing.
    - Search the **workspace first** (`src/**`, `read`/`search`, and the `al-mcp-server` workspace tools).
    - If the object lives in a dependency / standard BC and is not in the workspace, resolve it through the
      **al-symbols-mcp** symbol server (`al_symbolsearch` / `al_get_object_definition` / `al_search_object_members`).
-   - If you still cannot locate a needed object or field, **STOP and ask the user**.
+   - **Translate spec field names to real AL field names before deciding a field is missing.** A specification
+     usually lists fields in API/JSON style (`camelCase`, e.g. `wasteEntryType`, `postWithNo`,
+     `globIntMatDescription`), which will **not** match the underlying AL field name (`"Waste Entry Type"`,
+     `"Post-with No."`, `"Glob. Int. Mat. Description"`). Never conclude a field does not exist just because the
+     camelCase name is not found. Instead:
+     - First look for an **existing API object over the same table** in the workspace (a sibling `*.Query.al` /
+       `*.Page.al` exposing that table). Its `column`/`field` mappings give you the confirmed API-name →
+       AL-field-name pairing directly — this is the fastest and most reliable source.
+     - Otherwise read the **table definition** (al-mcp-server / al-symbols-mcp) and match by the field's actual
+       name/caption with spacing and punctuation removed, rather than by the exact camelCase string.
+   - If you still cannot locate a needed object or field after both, **STOP and ask the user**.
 
-4. **Locate the separate API app.** The APIs are **not** part of this app's `src/`. They live in their own
-   sibling AL app — an `api/` folder next to the `app/` and `test/` folders, each its own app with its own
-   `app.json` and `src/` (e.g. `../api/`). You implement API objects in that app's **`api/src/`** folder.
-   - If the `api/` app folder does **not** exist yet, **STOP and ask the user to create it first** (a complete
-     AL app, like `app/` and `test/`). Do not scaffold it yourself and do not place API objects in this app.
-   - Once it exists, read **its** `app.json` (`idRanges`) and `AppSourceCop.json` (affixes) — not this app's.
+4. **Locate the API app.** First determine **whether the current workspace is itself the dedicated API app**:
+   its `app.json` identifies it as the API app (e.g. an `.API` name/publisher) and its `src/**` already contains
+   API objects (`QueryType = API` / `PageType = API`). If so, the current workspace **is** the API app —
+   implement new or changed API objects in **its own `src/`** alongside the existing ones, and read **its**
+   `app.json`/`AppSourceCop.json`. When the task is to extend an existing API object, edit that object in place.
+   - Otherwise, the APIs are **not** part of this app's `src/`. They live in a separate sibling AL app — an
+     `api/` folder next to the `app/` and `test/` folders, each its own app with its own `app.json` and `src/`
+     (e.g. `../api/`). Implement API objects in that app's **`api/src/`** folder.
+   - If a separate API app is required but the `api/` folder does **not** exist yet, **STOP and ask the user to
+     create it first** (a complete AL app, like `app/` and `test/`). Do not scaffold it yourself and do not place
+     API objects in the non-API app.
+   - Read the API app's `app.json` (`idRanges`) and `AppSourceCop.json` (affixes) — whether that is the current
+     workspace or the sibling app.
 
-5. **Read project configuration and existing APIs (in the API app).**
+5. **Read project configuration and existing APIs (in the API app).** ("the API app" = the current workspace
+   when it is itself the API app, otherwise the sibling `api/` app.)
    - The API app's `app.json` → assign new object IDs from **its** `idRanges` (continue after the highest ID
-     already used in `api/src/`).
+     already used in its `src/`).
    - The API app's `AppSourceCop.json` → apply **its** mandatory affix (suffix/prefix) to new object/field names.
-   - **Existing API objects** in `api/src/` → derive the API route (`APIPublisher`/`APIGroup`/`APIVersion`) from
-     what the API app already uses. Reuse the established values so the new endpoint stays consistent. If no
-     existing API is present, or the right group/version is unclear, **ask the user** rather than inventing a route.
+   - **Existing API objects** in the API app's `src/` → derive the API route (`APIPublisher`/`APIGroup`/
+     `APIVersion`) from what the API app already uses, and reuse the established field-naming/region conventions
+     so the new endpoint stays consistent. If no existing API is present, or the right group/version is unclear,
+     **ask the user** rather than inventing a route.
 
 6. **Confirm the API contract before generating large objects.** For anything beyond a trivial single-entity
    read, briefly restate the planned `APIPublisher`/`APIGroup`/`APIVersion`, `EntityName`/`EntitySetName`,
@@ -147,6 +187,41 @@ and the user's stated preference. Only escalate to an API page when write semant
   to plain CRUD instead of overloading fields.
 - Honour transactional integrity — let BC validation run; do not add an unjustified `Commit()`.
 
+### Field layout conventions (queries and pages)
+These conventions are **mandatory** for every API object you emit. They keep the generated objects consistent
+and reviewable.
+
+- **API names are `camelCase`.** The API-facing name of every element — the `column`/`field` name and any
+  `Caption` — must be `camelCase` (first word lowercase, subsequent words capitalised, no spaces or
+  punctuation), e.g. `column(taskSiteName; "Task Site Name") { }`. Only the API name is `camelCase`; the source
+  AL field reference in quotes keeps its real name (`"Task Site Name"`). Derive the `camelCase` name from the
+  field's caption/name with spacing and punctuation removed.
+
+- **One line per element.** Write each `column` (query) or `field` (page) on a single line with its empty body
+  braces on the *same* line — never break the braces onto their own lines. For example:
+  - Query: `column(no; "No.") { }`
+  - Page:  `field(no; "No.") { }`
+
+  Only expand to a multi-line body when the element genuinely needs properties (e.g. `Caption`, `Editable`,
+  `Method`); an element with no properties always stays on one line.
+
+- **Group FlowFields in their own region.** Place all FlowField columns/fields together inside a dedicated
+  `#region FlowFields` … `#endregion` block, separate from the normal (non-FlowField) elements. This keeps their
+  performance cost visible and easy to review. Normal fields come first; the FlowFields region follows.
+
+- **Keep obsolete fields — do not drop them — in their own region.** When the spec asks for "all fields" and a
+  field is marked `ObsoleteState = Pending` (still accessible), still expose it, but move it into a dedicated
+  `#region Obsolete` … `#endregion` block **and** flag it with an `_obsolete` marker so consumers can tell it
+  apart:
+  - **API query:** append `_obsolete` to the **column name**, e.g. `column(weighbridgeTicketNo_obsolete; "Weighbridge Ticket No.") { }`.
+  - **API page:** keep the field's API name stable and append `_obsolete` to its `camelCase` **caption**, e.g.
+    `field(weighbridgeTicketNo; "Weighbridge Ticket No.") { Caption = 'weighbridgeTicketNo_obsolete'; }`.
+  - Fields that are `ObsoleteState = Removed` or otherwise inaccessible (e.g. `Access = Internal`) **cannot** be
+    referenced at all — omit those and note them in your summary.
+
+- **Region order.** Emit the normal fields first, then `#region FlowFields`, then `#region Obsolete`. A field
+  that is *both* a FlowField and obsolete goes in the `Obsolete` region.
+
 ### Both
 - Object names are `CamelCase` and carry the mandatory affix from the **API app's** `AppSourceCop.json`; new IDs
   come from the **API app's** `app.json` `idRanges`.
@@ -173,6 +248,7 @@ project; or exposing data would require knowledge of an external dependency's in
   - the route (`APIPublisher`/`APIGroup`/`APIVersion`) and `EntitySetName`,
   - the exposed fields and any related/child entities,
   - performance notes (keys/columns chosen, FlowFields avoided or justified),
+  - **any fields you omitted, each with a very short reason (a few words max)** — e.g. `weighbridgeTicketNo — obsolete (removed)`, `custBankAccountCode — internal access`,
   - any symbols you could not verify (with the exact question you need answered),
   - the result of the error check, and any permission set that still needs updating.
-- Finally, offer the handoffs to the **AL Documentation Writer** and **AL Test Implementer**.
+- Finally, offer a handoff to the **AL Documentation Writer**.

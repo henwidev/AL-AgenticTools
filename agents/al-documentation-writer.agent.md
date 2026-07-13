@@ -136,10 +136,21 @@ plus a language suffix:
    combined. Read full changed `.al` files at the committed tip (`git show HEAD:<path>`)
    when the committed diff lacks context. Use the **AL symbol-search / bc-code-intel**
    tools to resolve object/field/procedure references precisely.
-2. **Collect the specification** (and the internal comment, if provided).
-3. **Extract discrete claims**: each spec requirement and each concrete code change
+2. **Detect data upgrade logic.** While scanning the diff, check whether it touches any
+   `Subtype = Upgrade` codeunit (typically under an `Install`/`Upgrade` folder, e.g.
+   `Upgrade.Codeunit.al`, `UpgradeTag.Codeunit.al`) or introduces/changes an
+   `OnUpgradePerCompany`/`OnUpgradePerDatabase` trigger, an `UpgradeTag` registration, or a
+   `DataTransfer` variable/call. If any of these appear in the diff, this is a **data
+   upgrade** and Phase B **must** populate the *"Datenkorrektur // Correction of data"*
+   section (never remove it as not-applicable in that case) — describe, per upgrade
+   procedure, which table(s) are corrected, which fields are backfilled and from which
+   source, any filters/conditions applied (e.g. per document type), and confirm it runs
+   automatically without customer action. If the diff contains no such upgrade-codeunit
+   changes, treat the section as not applicable per the normal rules.
+3. **Collect the specification** (and the internal comment, if provided).
+4. **Extract discrete claims**: each spec requirement and each concrete code change
    becomes an individually checkable item.
-4. **Compare specification ↔ code** and record every difference with evidence
+5. **Compare specification ↔ code** and record every difference with evidence
    (file + line / object.member, and the spec passage it conflicts with):
    - Spec requirements **not implemented** in the code (missing).
    - Code changes the spec **does not request** (unrequested / out of scope).
@@ -147,13 +158,13 @@ plus a language suffix:
      type, caption, validation, behaviour, etc.).
    For each difference, check the internal comment: if it explicitly covers it, mark it
    ☑️ instead of ❌ and cite the passage.
-5. **Output the report** in the format below and **STOP**. Explicitly ask:
+6. **Output the report** in the format below and **STOP**. Explicitly ask:
    *"Please confirm you have read the differences above and that they are acceptable. I
    will only create/update the documentation after your confirmation."*
-6. **Do not start Phase B** until the user clearly confirms. If the user instead asks for
+7. **Do not start Phase B** until the user clearly confirms. If the user instead asks for
    code changes or disputes a difference, address that first; do not write documentation
    over unconfirmed differences.
-7. **Capture the commit scope from the confirmation.** When the user confirms, also record
+8. **Capture the commit scope from the confirmation.** When the user confirms, also record
    the **scope they state** (e.g. "only this file will be committed", "ignore the ❌
    items"). In Phase B you document **only** changes within that confirmed scope. Any
    change the user excludes — including uncommitted work-in-progress and binary layout
@@ -169,6 +180,8 @@ plus a language suffix:
 - [ ] I know and will state the **resolved base ref** and **current branch**.
 - [ ] Every code finding cites a file/line or object.member that appears in one of the
       two diffs.
+- [ ] I checked whether the diff touches any Upgrade-subtype codeunit, `UpgradeTag`, or
+      `DataTransfer` usage, and noted whether a data upgrade is present.
 - [ ] If there are no committed and no uncommitted AL changes, I am reporting exactly that
       instead of a fabricated report.
 
@@ -188,7 +201,9 @@ banner lines or the bilingual headings.
   invent a section — ask the user where it belongs.**
 - **If a section is not applicable, remove that section entirely** (banner and heading
   included) and **tell the user** in your closing summary which section(s) you removed and
-  why.
+  why. **Exception:** never remove *"Datenkorrektur // Correction of data"* when Phase A
+  detected a data upgrade (see "Detect data upgrade logic") — it must always be populated
+  in that case.
 - **Create-from-scratch:** put a single `/` as the content of
   *"Nachträgliche Anpassungen // Additional customizations"*.
 - **Update mode:** record the newly delivered changes under
@@ -231,7 +246,25 @@ of new fields (if necessary).]
 Abweichungen vom Konzept // Deviation from concept:
 ==================================================
 [If deviations from the concept occur during development that are not noted in the
-concept, list them here.]
+concept, list them here. A genuine deviation is something this branch's implementation
+does *differently* from what the specification explicitly asked for. Before listing an
+item here, check it is not actually one of these non-deviations:
+- **Compliance with an explicit spec preference is not a deviation.** If the spec itself
+  states a preference (e.g. "favor Query APIs for performance") and the implementation
+  follows that preference even though a different existing design (e.g. an editable Page
+  in an earlier version) is not carried over, that is compliance, not a deviation — omit
+  it, or move it to Bedienung as a design choice if worth explaining.
+- **Pre-existing, unchanged behaviour is not a deviation of this branch.** If a piece of
+  behaviour was already present/unchanged in an earlier version and this branch did not
+  introduce or alter it, do not list it as a deviation here, even if it looks unusual —
+  it is out of scope for this ticket's concept comparison.
+- **A resolved terminology ambiguity is not a deviation** when, once the correct meaning
+  of the spec's wording is established (e.g. via an internal comment), the implementation
+  actually matches the spec. Only list it if the resolution reveals an actual functional
+  difference from what was requested.
+- When describing planned future work referenced by an internal comment, use the
+  specific detail the comment gives (e.g. "in Power BI") rather than a generic
+  placeholder like "in a later development step" if that is not what was actually said.]
 
 ==================================================
 Einschränkungen // Limitations:
@@ -250,15 +283,46 @@ Datenkorrektur // Correction of data:
 [If the implementation necessitates a correction of existing data, or if it has been
 defined that existing data will not be corrected retrospectively, indicate that here as
 step-by-step instructions for the customer. Update objects to be deleted again should
-also be listed here.]
+also be listed here. If Phase A detected a data upgrade (an Upgrade-subtype codeunit,
+`UpgradeTag`, or `DataTransfer` usage in the diff), this section is mandatory: describe,
+per upgrade procedure, which table(s) are corrected, which fields are backfilled and from
+which source table/field, any filters/conditions applied, and confirm the correction runs
+automatically on upgrade without customer action.]
 
 ==================================================
 Neue Objekte // New objects:
 ==================================================
-[If new objects (especially tables) were created and these objects are relevant for the
-change log, or if user rights have to be assigned to the new objects, list them here.
-List only whole new objects (tables, queries, codeunits, page/table extensions, enums,
-etc.) — do NOT list individual fields added through table extensions.]
+[List every whole new object delivered by the branch (tables, queries, pages, codeunits,
+page/table extensions, enums, etc.) — do NOT list individual fields added through table
+extensions, and do NOT list objects that already existed before this branch and were only
+modified/extended (e.g. an existing codeunit that received additional procedures, or an
+existing query that gained extra columns) — those belong in Bedienung/Abweichungen, not
+here. Always include this section and always list all genuinely new objects, even ones
+you consider purely technical (e.g. a newly added event-subscriber codeunit or page/table
+extension) — the customer/changelog audience needs the complete inventory.
+
+**Before listing an object, verify it is actually new**: an object counts as new only if
+its declaration (`table`/`query`/`page`/`codeunit`/`tableextension`/... line) is introduced
+by this branch's diff — i.e. the file is newly added, or a brand-new object is declared
+inside an otherwise-modified file. If the object's file/declaration already existed before
+this branch and the diff only adds procedures, fields, or logic to it, it is a
+**modification**, not a new object, and must be omitted from this section even if it is
+functionally central to the change (e.g. an Upgrade-subtype codeunit that already existed
+and merely gained new upgrade procedures for this ticket's data correction — describe that
+in "Datenkorrektur" instead, not here).
+
+Always group the objects by object type, using separate groups for: API Queries
+(QueryType = API), API Pages (PageType = API), Queries (any other QueryType), Pages (any
+other PageType), Table Extensions, Page Extensions, Tables, Codeunits, Enums/Enum
+Extensions (omit any group that has no members).
+
+Every listed object always shows its object ID (e.g. "Query 50658",
+"Table Extension 50652"), regardless of group. The API endpoint (EntityName/
+EntitySetName) is shown only for objects in the API Queries / API Pages groups — never
+for plain Queries/Pages, table/page extensions, tables, codeunits, or enums, since those
+have no API endpoint. Format each line as either:
+- <Type> <ID> "<Object Name>" (<endpoint>)   — for API Queries/API Pages
+- <Type> <ID> "<Object Name>" — <short purpose>   — for everything else]
 
 ==================================================
 Nachträgliche Anpassungen // Additional customizations:
@@ -309,9 +373,18 @@ hand-over.
   read-only and Phase B only writes/updates the documentation.
 - DO NOT deviate from the documentation structure: never add, rename, reorder, or restyle
   sections, and never alter the banner lines or bilingual headings.
-- DO remove a non-applicable section entirely and tell the user you did so.
+- DO remove a non-applicable section entirely and tell the user you did so, **except**
+  *"Datenkorrektur // Correction of data"* when Phase A detected a data upgrade — that
+  section must always be populated in that case.
 - DO ask the user where a change belongs when it does not fit any section, instead of
   forcing or inventing one.
+- DO NOT list an object in *"Neue Objekte // New objects"* unless its declaration is
+  genuinely introduced by this branch's diff. An object whose file/declaration already
+  existed and was merely modified (extra procedures, fields, or logic added to it — e.g.
+  an Upgrade-subtype codeunit that already existed and only gained new upgrade
+  procedures) is a modification, not a new object, and must be omitted from that section
+  even when it is central to the change; describe it in the relevant section instead
+  (e.g. "Datenkorrektur" for upgrade logic).
 - DO NOT invent specification requirements, code changes, setup steps, limitations, or
   objects you cannot point to in the specification or in one of the two diffs. This
   explicitly includes the **contents of binary layout files** (`.docx`, `.rdlc`): a layout
