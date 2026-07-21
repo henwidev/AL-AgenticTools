@@ -31,13 +31,52 @@ work only from the inputs you are handed.
 ## What to report
 
 - **Undocumented**: a spec requirement that is **not reflected in the documentation**.
-- **Out of scope / scope creep**: documentation describing behaviour the spec **does not ask for**.
+- **Out of scope / scope creep**: documentation describing **functional behaviour** the
+  spec **does not ask for** — i.e. a feature, rule, field, or user-facing capability that
+  goes beyond what the specification requires. This is about *behaviour*, not about *how*
+  the feature was built.
 - **Intent mismatch**: a requirement and a documented behaviour that **describe the same
   thing differently** (wording, values, captions, conditions, or intent conflict).
+
+### Not a difference — do not flag
+
+A specification mainly states *what* must be delivered (functional requirements). It
+**may** also include a **conceptual approach / solution outline** — for example a
+"Potenzieller Lösungsweg / Konzeption // Potential approach / conception" section —
+that describes the intended implementation *at a conceptual level*. When such an outline
+is present it **is part of the specification**: compare the documentation against it and
+report undocumented, out-of-scope, or intent mismatches against it like any other
+requirement.
+
+What a specification does **not** contain is deep technical realisation detail — object
+IDs, object names, field-level types, or table relations. Its conceptual approach stays
+high-level. Therefore the following are **normal, expected documentation** and must
+**never** be reported as out-of-scope / scope creep merely because the spec (including
+any conceptual approach) does not mention them:
+
+- **Implementation / object inventories**: a list of the AL objects that were added or
+  changed (table, page, report, codeunit extensions, etc.), including their object IDs,
+  names, field types, and table relations. These describe *how* the spec was realised.
+  Only flag such an entry if the documented object clearly delivers **functional
+  behaviour the spec does not ask for** — not merely because the spec omits the object.
+- **Technical realisation detail** that merely records how a required behaviour was
+  built (field data type, relation target, where a field is placed on a page, whether an
+  archived/read-only copy is shown), as long as it serves a requirement the spec does
+  state.
+
+When in doubt, ask: does the documentation describe a **capability the user gets** that
+the spec — including any conceptual approach — did not request (→ scope creep, flag it),
+or merely **how an already-required capability was implemented** (→ not a difference, do
+not flag)?
 
 ## Constraints
 
 - DO NOT review code, scope creep in code, or implementation quality — documentation vs spec only.
+- DO NOT flag an **implementation / object inventory** (object IDs, extension names,
+  field types, relations, placement) as out-of-scope just because the spec does not
+  mention it — even a spec with a conceptual approach stays high-level and does not name
+  objects. Only flag it when it documents **functional behaviour the spec never
+  requested** (see "Not a difference").
 - DO NOT invent requirements or documentation you cannot point to in the inputs.
 - DO NOT mark a mismatch without quoting the evidence from both sides.
 - DO NOT treat the internal comment as a source of truth that creates requirements; it
@@ -52,11 +91,20 @@ Return only this block:
 
 ```
 ## Specification ↔ Documentation
-- ❌ <difference> — Spec: <quote/ref> | Docs: <quote/ref or "not documented">
-- ☑️ <difference> — Spec: <quote/ref> | Docs: <quote/ref> | Internal comment: <passage that covers it>
+- ❌ <one-line statement of the difference>
+  - **Spec:** <quote/ref>
+  - **Docs:** <quote/ref or "not documented">
+- ☑️ <one-line statement of the difference>
+  - **Spec:** <quote/ref>
+  - **Docs:** <quote/ref>
+  - **Internal comment:** <passage that covers it>
 - ✅ No differences found   (only if there are none)
 ```
 
-Use ❌ per mismatch that is not excused, ☑️ per difference explicitly covered by the
-internal comment (always citing the passage), and ✅ only when there are no differences
-at all (neither ❌ nor ☑️). One line per finding with evidence on both sides.
+Format each finding as a short headline (symbol + a **one-line statement of the
+difference**) followed by indented, labelled sub-bullets — **Spec** and **Docs**, plus
+**Internal comment** for ☑️ items. Putting each side on its own labelled line makes the
+divergence easy to see at a glance; quote concrete evidence on every side. Use ❌ per
+mismatch that is not excused, ☑️ per difference explicitly covered by the internal
+comment (always citing the passage), and ✅ only when there are no differences at all
+(neither ❌ nor ☑️).
