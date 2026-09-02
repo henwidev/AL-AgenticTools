@@ -297,8 +297,8 @@ page/table extensions, enums, etc.) — do NOT list individual fields added thro
 extensions, and do NOT list objects that already existed before this branch and were only
 modified/extended (e.g. an existing codeunit that received additional procedures, or an
 existing query that gained extra columns) — those belong in Bedienung/Abweichungen, not
-here. Always include this section and always list all genuinely new objects, even ones
-you consider purely technical (e.g. a newly added event-subscriber codeunit or page/table
+here. When the branch does deliver new objects, list **all** of them, even ones you
+consider purely technical (e.g. a newly added event-subscriber codeunit or page/table
 extension) — the customer/changelog audience needs the complete inventory.
 
 **Before listing an object, verify it is actually new**: an object counts as new only if
