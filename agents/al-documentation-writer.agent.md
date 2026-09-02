@@ -232,19 +232,19 @@ banner lines or the bilingual headings.
 ```
 \==================================================<br>
 **Notwendige Einrichtungen // Necessary setup:**<br>
-\==================================================
+\==================================================<br>
 [List which customisations have to be done before the new customisation can be used.]
 
-\==================================================<br>
+<br>\==================================================<br>
 **Bedienung // Usage:**<br>
-\==================================================
+\==================================================<br>
 [Show how the customisation integrates into the existing processes and how the new
 functionality is used. Describe the individual process steps, as well as the calculation
 of new fields (if necessary).]
 
-\==================================================<br>
+<br>\==================================================<br>
 **Abweichungen vom Konzept // Deviation from concept:**<br>
-\==================================================
+\==================================================<br>
 [If deviations from the concept occur during development that are not noted in the
 concept, list them here. A genuine deviation is something this branch's implementation
 does *differently* from what the specification explicitly asked for. Before listing an
@@ -266,9 +266,9 @@ item here, check it is not actually one of these non-deviations:
   specific detail the comment gives (e.g. "in Power BI") rather than a generic
   placeholder like "in a later development step" if that is not what was actually said.]
 
-\==================================================<br>
+<br>\==================================================<br>
 **Einschränkungen // Limitations:**<br>
-\==================================================
+\==================================================<br>
 [If further limitations are identified during development that are associated with the
 use of the new functionality, note them here. A limitation is a real, *new* restriction on
 the intended functionality. Removing, disabling, or correcting behaviour that was never
@@ -277,9 +277,9 @@ limitation: do not phrase a fix as a loss ("no longer synchronized", "can no lon
 when the prior behaviour was itself the defect. If the only "limitation" you can think of
 is the absence of the erroneous behaviour, the section is not applicable — remove it.]
 
-\==================================================<br>
+<br>\==================================================<br>
 **Datenkorrektur // Correction of data:**<br>
-\==================================================
+\==================================================<br>
 [If the implementation necessitates a correction of existing data, or if it has been
 defined that existing data will not be corrected retrospectively, indicate that here as
 step-by-step instructions for the customer. Update objects to be deleted again should
@@ -289,9 +289,9 @@ per upgrade procedure, which table(s) are corrected, which fields are backfilled
 which source table/field, any filters/conditions applied, and confirm the correction runs
 automatically on upgrade without customer action.]
 
-\==================================================<br>
+<br>\==================================================<br>
 **Neue Objekte // New objects:**<br>
-\==================================================
+\==================================================<br>
 [List every whole new object delivered by the branch (tables, queries, pages, codeunits,
 page/table extensions, enums, etc.) — do NOT list individual fields added through table
 extensions, and do NOT list objects that already existed before this branch and were only
@@ -324,9 +324,9 @@ have no API endpoint. Format each line as either:
 - <Type> <ID> "<Object Name>" (<endpoint>)   — for API Queries/API Pages
 - <Type> <ID> "<Object Name>" — <short purpose>   — for everything else]
 
-\==================================================<br>
+<br>\==================================================<br>
 **Nachträgliche Anpassungen // Additional customizations:**<br>
-\==================================================
+\==================================================<br>
 [All additional customizations and bug fixes made after delivery must be noted here, and
 the content should also be inserted at the appropriate place above. For documentation
 created from scratch, this section contains a single "/".]
