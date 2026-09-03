@@ -40,6 +40,9 @@ work-in-progress.
 Load and follow the **`git-branch-diff`** skill, passing through the caller's optional
 base branch and the optional path scope (e.g. `-- "*.al"`). From its output, capture:
 - the **base ref** it resolved and the **current branch** name,
+- its **base freshness** block (fetch outcome, base tip + date, commits the base gained
+  since the merge-base, base-changed files overlapping the branch's changed files, merge
+  probe result),
 - the committed **changed files** (`--name-status`),
 - the committed **diff** (`<base>...HEAD`, scoped if requested).
 
@@ -74,10 +77,11 @@ tell which change came from which source.
 Return exactly, in this order, and nothing else:
 
 1. **Base ref used** (e.g. `origin/master`) and **current branch** name.
-2. **Committed — changed files** — the raw `--name-status` output from `git-branch-diff`.
-3. **Committed — diff** — the complete `git diff <base>...HEAD` output (scoped if requested).
-4. **Uncommitted (unstaged) — diff** — the complete `git diff <scope>` output.
-5. **Uncommitted (staged) — diff** — the complete `git diff --staged <scope>` output.
+2. **Base freshness** — the block returned by `git-branch-diff`, passed through verbatim.
+3. **Committed — changed files** — the raw `--name-status` output from `git-branch-diff`.
+4. **Committed — diff** — the complete `git diff <base>...HEAD` output (scoped if requested).
+5. **Uncommitted (unstaged) — diff** — the complete `git diff <scope>` output.
+6. **Uncommitted (staged) — diff** — the complete `git diff --staged <scope>` output.
 
 For any of the three diff sources that is empty, say so explicitly (e.g. "no uncommitted
 unstaged changes") rather than omitting it silently. If the base branch cannot be

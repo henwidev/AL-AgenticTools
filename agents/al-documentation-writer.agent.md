@@ -73,7 +73,9 @@ deliberate exception the skill collects for you.
 Before you read any file, form any opinion, or write any finding or documentation:
 
 1. **Run the `branch-workspace-diff` skill first.** Capture the base ref it resolved, the
-   current branch, and both the committed and uncommitted AL changes.
+   current branch, its **base freshness** block (fetch outcome, base tip and date, commits
+   the base gained since the merge-base, base-changed files overlapping this branch's
+   changed files), and both the committed and uncommitted AL changes.
 2. **Reading whole files is not a substitute for the diffs.** You may read full files for
    *context*, but the set of changes is defined by the skill's combined output. Read
    changed `.al` files at the committed tip with `git show HEAD:<path>` when the committed
@@ -178,6 +180,9 @@ plus a language suffix:
 - [ ] For the committed part neither I nor the skill used `get_changed_files`, the Source
       Control panel, `git status`, `git diff HEAD`, or a bare `git diff`.
 - [ ] I know and will state the **resolved base ref** and **current branch**.
+- [ ] I know and will state the **base freshness** facts, and I flag a stale-base risk when
+      the base ref could not be refreshed or gained commits in files this branch also
+      changed.
 - [ ] Every code finding cites a file/line or object.member that appears in one of the
       two diffs.
 - [ ] I checked whether the diff touches any Upgrade-subtype codeunit, `UpgradeTag`, or
@@ -417,6 +422,9 @@ hand-over.
   The **uncommitted** workspace changes are the deliberate exception the same skill
   collects via `git diff` / `git diff --staged`.
 - When a source of truth is missing or ambiguous, ask the user rather than assuming.
+- DO report the **base freshness** facts the skill returns, and raise a stale-base open
+  question when the base ref could not be refreshed or gained commits in files this branch
+  also changed. Never resolve staleness yourself by pulling, merging, or rebasing.
 
 ## Output Format
 
@@ -431,11 +439,29 @@ Mode: <create from scratch | integrate latest changes>   Target: docs/<DOC>-<lan
 > Diff sources: committed = `git-branch-diff` skill (`<base>...HEAD`); uncommitted =
 > `git diff` / `git diff --staged` (`-- "*.al"`), both via the `branch-workspace-diff`
 > skill. No changed-files / Source Control view was used for the committed part.
+> Base freshness: fetch <succeeded | failed: reason>; base tip <sha> (<date>); base gained
+> <n> commit(s) since the merge-base; overlapping changed files: <list | none>; merge
+> probe: <clean | conflicts in: list | skipped>.
+
+## Summary
+<1–3 sentence verdict: aligned / differences found, and the headline risks.>
 
 ## Specification ↔ Code
-- ❌ <difference> — Spec: <quote/ref> | Code: <file#Lline / object.member or "not implemented">
-- ☑️ <difference> — Spec: <quote/ref> | Code: <file#Lline / object.member> | Internal comment: <passage that covers it>
+- ❌ <one-line statement of the difference>
+  - **Spec:** <quote/ref>
+  - **Code:** <file#Lline / object.member or "not implemented">
+- ☑️ <one-line statement of the difference>
+  - **Spec:** <quote/ref>
+  - **Code:** <file#Lline / object.member>
+  - **Internal comment:** <passage that covers it>
 - ✅ No differences found   (if applicable)
+
+## Open Questions
+- <missing input, ambiguous requirement, or change that fits no documentation section>
+- <stale-base risk: the base gained commits in files this branch also changed, or the base
+  ref could not be refreshed — the comparison may not reflect the current base>
+- <merge conflict: the branch conflicts with the current base in <files> — rebasing or
+  merging the base is your decision, not something this agent performs>
 
 ## Confirmation required
 Please confirm you have read the differences above and that they are acceptable.
@@ -445,7 +471,24 @@ I will only create/update the documentation after your confirmation.
 The attestation line under the header is mandatory: it states the resolved base ref and
 confirms the committed diff came from the `git-branch-diff` skill (with the uncommitted
 workspace diff collected deliberately). If you cannot truthfully write it, do not emit the
-report — collect the diffs first.
+report — collect the diffs first. The base-freshness line is equally mandatory: never imply
+the branch was compared against a current base when the base ref could not be refreshed.
+
+### Reporting symbols
+
+Use the same legend as the AL PR Alignment Reviewer:
+
+- **❌** — a genuine difference that the internal comment does **not** explain.
+- **☑️** — a difference the internal comment **explicitly** explains or justifies; always
+  cite the covering passage. A vague note does not count — the internal comment can only
+  excuse a difference, never create a requirement.
+- **✅** — used only when the comparison has **no** differences at all (neither ❌ nor ☑️).
+
+Format each finding as a short headline — the symbol plus a **one-line statement of the
+difference** — followed by indented, labelled sub-bullets, one per source (**Spec**,
+**Code**), plus **Internal comment** for ☑️ items. Quote or cite concrete evidence on
+every side (spec passage, or `file#Lline` / `object.member`) so it can be acted on without
+hunting.
 
 ### Phase B output (only after confirmation)
 

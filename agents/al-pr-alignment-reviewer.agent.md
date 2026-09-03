@@ -89,6 +89,11 @@ write findings before it.
    **excludes uncommitted/unstaged edits**.
    - **Record the resolved base ref and current branch** — you must state them in the
      attestation line, and they gate the report.
+   - **Record the skill's base freshness block** — whether the base ref was refreshed
+     (`git fetch`), the base tip and its date, how many commits the base gained since the
+     merge-base, and which of those base-changed files overlap the branch's changed files.
+     You must state this in the report, because a three-dot diff against a stale base
+     hides that the branch was built on outdated code.
    - Use the skill's `-- "*.al"` scoped diff for the AL changes and its `--name-status`
      list for the file overview.
    - Read full changed `.al` files at the committed tip (`git show HEAD:<path>`) only
@@ -140,6 +145,9 @@ running the `git-branch-diff` skill) and re-check — do not emit a report other
 - [ ] I did **not** call `get_changed_files`, the Source Control panel, `git status`,
       `git diff HEAD`, or a bare `git diff` at any point.
 - [ ] I know and will state the **resolved base ref** and **current branch**.
+- [ ] I know and will state the **base freshness** facts (fetch outcome, base tip/date,
+      commits the base gained since the merge-base, overlapping files) — and, if the base
+      moved ahead in files this branch also touches, I raised it as an open question.
 - [ ] Every code finding cites a file/line or object.member that appears in the
       skill's diff (not merely in the working tree).
 - [ ] If the skill reported no committed differences, I am reporting exactly that
@@ -202,6 +210,9 @@ Checks for false or missing documentation.
   differences, say so and stop instead of producing a review from another source.
 - When a source of truth is missing or ambiguous, list it as an **open question**
   rather than assuming.
+- DO report the **base freshness** facts the skill returns, and raise a stale-base **open
+  question** when the base ref could not be refreshed or gained commits in files this
+  branch also changed. Never resolve staleness yourself by pulling, merging, or rebasing.
 
 ## Output Format
 
@@ -212,6 +223,9 @@ Base branch: <base>   Branch: <current>   Spec: <pasted / handed over>
 
 > Diff source: `git-branch-diff` skill (`<base>...HEAD`) — confirmed. No changed-files/
 > source-control/working-tree tool was used.
+> Base freshness: fetch <succeeded | failed: reason>; base tip <sha> (<date>); base gained
+> <n> commit(s) since the merge-base; overlapping changed files: <list | none>; merge
+> probe: <clean | conflicts in: list | skipped>.
 
 ## Summary
 <1–3 sentence verdict: aligned / mismatches found, and the headline risks.>
@@ -248,11 +262,17 @@ Base branch: <base>   Branch: <current>   Spec: <pasted / handed over>
 
 ## Open Questions
 - <missing input, ambiguous requirement, or doc that could not be located>
+- <stale-base risk: the base gained commits in files this branch also changed, or the base
+  ref could not be refreshed — the review may not reflect the current base>
+- <merge conflict: the branch conflicts with the current base in <files> — rebasing or
+  merging the base is your decision, not something this review performs>
 ```
 
 The attestation line under the header is mandatory: it states the resolved base ref and
 confirms the diff came from the `git-branch-diff` skill. If you cannot truthfully write
-it, you must not emit the report — run the skill first.
+it, you must not emit the report — run the skill first. The base-freshness line is equally
+mandatory: a review against an unrefreshed or outdated base must say so rather than imply
+the branch was compared against the current base.
 
 ## Reporting symbols
 
