@@ -150,23 +150,47 @@ plus a language suffix:
    automatically without customer action. If the diff contains no such upgrade-codeunit
    changes, treat the section as not applicable per the normal rules.
 3. **Collect the specification** (and the internal comment, if provided).
-4. **Extract discrete claims**: each spec requirement and each concrete code change
-   becomes an individually checkable item.
-5. **Compare specification ↔ code** and record every difference with evidence
+4. **Extract discrete claims** — three kinds, all individually checkable:
+   - **Requirements**: what the spec asks to be built.
+   - **Baseline claims**: what the spec states **already exists** (the current situation /
+     "Ausgangslage" section, phrases like "the field comes from extension X", "has field
+     number N and type T", "is maintained on the line"). These describe the pre-branch
+     state — they are *not* work to be done.
+   - **Scope limits**: sentences that explicitly bound the work to a layer, object class,
+     or enumerated list (e.g. "only the datasets are to be extended", "Ebene: Belegzeile",
+     "the following variants are to be implemented", "X is not part of this adjustment").
+   Also extract each concrete code change from the diff as its own item.
+5. **Verify the baseline claims against the codebase before comparing.** For every element
+   the spec says already exists, locate it (symbol search / bc-code-intel) and determine
+   **who declares it**: pre-existing code, or this branch's diff. If the branch declares it,
+   the spec and the code disagree about the starting state — that is always a difference to
+   report, never an implementation detail.
+6. **Compare specification ↔ code** and record every difference with evidence
    (file + line / object.member, and the spec passage it conflicts with):
    - Spec requirements **not implemented** in the code (missing).
    - Code changes the spec **does not request** (unrequested / out of scope).
    - Requirements implemented **differently than specified** (deviation in design, field
      type, caption, validation, behaviour, etc.).
+   - **Baseline violations**: the branch **creates anew** something the spec describes as
+     already existing (a re-declared field, a duplicated table field, a re-implemented
+     procedure). Matching the spec's *description* of that element (same ID, same type,
+     same caption) does **not** make it in scope — it makes it a duplicate.
+   - **Scope-boundary violations**: changes outside the layer/object class the spec
+     explicitly limits the work to. An explicit scope limit **overrides** the usual
+     "the spec defines *what*, not *how*" leniency (see the constraint below).
+   - **Orphan additions**: a newly added field/column that nothing in the diff populates,
+     calculates, or reads (no assignment, no `CalcFormula`/FlowField, no `TableRelation`
+     source, no transfer or validation logic). Treat this as a strong signal of a duplicate
+     of an existing field or of an incomplete feature — flag it and ask.
    For each difference, check the internal comment: if it explicitly covers it, mark it
    ☑️ instead of ❌ and cite the passage.
-6. **Output the report** in the format below and **STOP**. Explicitly ask:
+7. **Output the report** in the format below and **STOP**. Explicitly ask:
    *"Please confirm you have read the differences above and that they are acceptable. I
    will only create/update the documentation after your confirmation."*
-7. **Do not start Phase B** until the user clearly confirms. If the user instead asks for
+8. **Do not start Phase B** until the user clearly confirms. If the user instead asks for
    code changes or disputes a difference, address that first; do not write documentation
    over unconfirmed differences.
-8. **Capture the commit scope from the confirmation.** When the user confirms, also record
+9. **Capture the commit scope from the confirmation.** When the user confirms, also record
    the **scope they state** (e.g. "only this file will be committed", "ignore the ❌
    items"). In Phase B you document **only** changes within that confirmed scope. Any
    change the user excludes — including uncommitted work-in-progress and binary layout
@@ -187,6 +211,14 @@ plus a language suffix:
       two diffs.
 - [ ] I checked whether the diff touches any Upgrade-subtype codeunit, `UpgradeTag`, or
       `DataTransfer` usage, and noted whether a data upgrade is present.
+- [ ] I extracted the spec's **baseline claims** (what it says already exists) and, for
+      each one, confirmed whether this branch declares it anew — flagging every such
+      duplicate rather than accepting it as technical support.
+- [ ] I extracted the spec's **scope limits** and checked every changed object against
+      them; I did not excuse an out-of-layer change with "the spec defines what, not how".
+- [ ] Every newly added field/column in the diff is either explicitly requested by the spec
+      **or** provably populated/read by code in the diff; otherwise I flagged it as an
+      orphan addition.
 - [ ] If there are no committed and no uncommitted AL changes, I am reporting exactly that
       instead of a fabricated report.
 
@@ -396,6 +428,20 @@ hand-over.
   showing as modified in `git status` does not tell you what changed inside it. Do not
   infer downstream behaviour (printing, rendering, UI placement) from a change you cannot
   read in the AL diff.
+- DO treat the specification's **baseline claims** (what it says already exists) as
+  checkable facts, not as background prose. When the branch declares something the spec
+  says already exists, report it as a difference — an element matching the spec's
+  *description* (same field number, type, caption) is evidence that it is a **duplicate**,
+  not evidence that creating it was requested.
+- DO honour explicit **scope limits** in the specification. The "the spec defines *what*,
+  not *how*" leniency applies only where the spec is silent about the shape of the
+  solution. Where the spec explicitly bounds the work — to a layer ("only the datasets"),
+  an object class, an enumerated list of variants, or an excluded area ("X is not part of
+  this adjustment") — anything outside that boundary is out of scope and must be flagged,
+  however technically convenient it seems.
+- DO flag a newly added field or dataset column that nothing in the diff populates,
+  calculates, or reads as an **orphan addition** and ask about it, instead of assuming it
+  is a necessary supporting change.
 - DO restrict the documentation to the **commit scope the user confirmed in Phase A**.
   Changes the user excluded (out-of-scope uncommitted work, binary layouts, unrelated
   objects) must not be described, even if the `branch-workspace-diff` output contains them.

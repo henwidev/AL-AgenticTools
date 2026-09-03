@@ -122,7 +122,14 @@ write findings before it.
 5. **Extract discrete claims** from each source — each spec requirement, each documented
    behaviour, and each concrete code change become individually checkable items. Also
    extract each point the internal comment raises, so you can match it against the
-   differences you find.
+   differences you find. Additionally extract, from the specification:
+   - its **baseline claims** — what it states **already exists** (current situation /
+     "Ausgangslage", "the field comes from extension X", "has field number N and type T").
+     Verify each against the codebase and establish whether the element is declared by
+     pre-existing code or by this branch's diff.
+   - its **scope limits** — sentences that explicitly bound the work to a layer, object
+     class, enumerated list, or that exclude an area from this ticket.
+   These feed the baseline- and scope-violation checks in comparison 2.
 6. **Run the three comparisons** below and record every mismatch with evidence
    (file + line / object + member, and the spec or doc passage it conflicts with).
    For each difference, apply the **"Reporting symbols"** rule (checking whether the
@@ -150,6 +157,12 @@ running the `git-branch-diff` skill) and re-check — do not emit a report other
       moved ahead in files this branch also touches, I raised it as an open question.
 - [ ] Every code finding cites a file/line or object.member that appears in the
       skill's diff (not merely in the working tree).
+- [ ] I extracted the spec's **baseline claims** and checked, for each, whether this branch
+      declares the element anew instead of reusing it.
+- [ ] I extracted the spec's **scope limits** and checked every changed object against
+      them, without excusing an out-of-boundary change as "what, not how".
+- [ ] Every newly added field/column is either explicitly requested **or** provably
+      populated/read by code in the diff; otherwise I flagged it as an orphan addition.
 - [ ] If the skill reported no committed differences, I am reporting exactly that
       instead of a fabricated review.
 
@@ -175,6 +188,21 @@ Checks that every requested change was actually implemented as designed.
   objects to create. A new object, field, or line that merely **implements a required
   behaviour** is not out of scope — only flag code that gives the user a capability the
   spec never asked for.
+- **Baseline violations**: the branch **creates anew** something the spec describes as
+  already existing (its current-situation / "Ausgangslage" section, or phrases like "the
+  field comes from extension X", "has field number N and type T"). Verify each such claim
+  against the codebase and determine who declares the element — pre-existing code or this
+  diff. An added element that matches the spec's *description* (same ID, type, caption) is
+  evidence of a **duplicate**, not evidence that creating it was requested.
+- **Scope-boundary violations**: changes outside a boundary the spec draws explicitly — a
+  layer ("only the datasets are to be extended", "Ebene: Belegzeile"), an object class, an
+  enumerated list of affected variants, or an excluded area ("X is not part of this
+  adjustment"). An explicit boundary **overrides** the *what-not-how* leniency above: that
+  leniency applies only where the spec is silent about the shape of the solution.
+- **Orphan additions**: a newly added field or dataset column that nothing in the diff
+  populates, calculates, or reads (no assignment, no `CalcFormula`/FlowField, no
+  `TableRelation` source, no transfer or validation logic). Flag it — it is a strong signal
+  of a duplicate of an existing field or of an incomplete implementation.
 - Requirements implemented **differently than specified** (deviation in design, field
   type, caption, validation, behaviour, etc.) — including deviations from a conceptual
   approach the spec does state.
@@ -195,7 +223,10 @@ Checks for false or missing documentation.
 - DO NOT mark something as a mismatch without citing the concrete evidence on both sides.
 - DO NOT flag an added object, field, or line as out-of-scope merely because the spec
   does not name it — the spec defines *what*, not *how*. Only flag it when it delivers
-  **functional behaviour the spec never requested**.
+  **functional behaviour the spec never requested**. This leniency applies **only where the
+  spec is silent** about the shape of the solution: it never excuses an element the spec
+  says already exists (baseline violation), a change outside an explicit scope limit, or an
+  addition nothing populates or reads.
 - ONLY report alignment differences across spec, code, and documentation.
 - DO NOT treat the internal comment as a source of truth that can create requirements;
   it may only **excuse** an otherwise-flagged difference (see "Reporting symbols"), and
