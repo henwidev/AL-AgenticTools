@@ -1,6 +1,6 @@
 # GitHub Copilot Agents & Skills
 
-This repository contains custom GitHub Copilot agents and skills for Business Central AL development.
+This repository contains custom GitHub Copilot agents, skills, and instructions for Business Central AL development.
 
 ---
 
@@ -16,6 +16,9 @@ Writes or updates customer-facing functional documentation for an AL feature. It
 
 #### AL Changelog Writer
 Appends a single customer-facing one-liner to the `changelogs/` folder for the current feature branch. Derives the change summary from committed and uncommitted AL object changes on the branch. Keeps changelog entries positive, non-technical, and scoped to what the customer sees.
+
+#### AL API Modifier
+Extends or modifies existing Business Central API pages and queries in their owning AL app while preserving historical contracts. Treats all externally observable contract changes, including field additions, as breaking: copies affected API objects with verified free IDs and names, exposes the changes only in a new minor `APIVersion`, and carries unchanged current endpoints into that release. Internal refactoring with no external behavior change stays in place without a version bump. Use **AL API Developer** for new APIs.
 
 ---
 
@@ -47,3 +50,12 @@ Appends a single customer-facing one-liner to the `changelogs/` folder for the c
 | **document-number** | Derives the ticket/document number from the current branch name. |
 | **git-branch-diff** | Returns the committed diff of the current branch versus the base branch. |
 | **gwt-scenario-review** | Reviews GIVEN-WHEN-THEN scenarios for completeness and structure. |
+
+---
+
+## Instructions
+
+| Instruction | Purpose |
+|---|---|
+| [BC Dev Connection Defaults](instructions/bc-dev-connection.instructions.md) | Uses `http://BC28`, server instance `BC`, and environment type `OnPrem` for supported bc-dev MCP connection parameters unless another target is specified. Does not configure `launch.json`. |
+| [Windows](instructions/windows.instructions.md) | Requires native Windows and PowerShell-compatible terminal commands; uses Linux commands only when explicitly targeting a Linux environment. |

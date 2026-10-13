@@ -1,9 +1,9 @@
 {
 	"servers": {
-		"microsoft/azure-devops-mcp": {
-			"url": "https://mcp.dev.azure.com/tegosgroup",
-			"type": "http",
-		},
+		// "microsoft/azure-devops-mcp": {
+		// 	"url": "https://mcp.dev.azure.com/tegosgroup",
+		// 	"type": "http",
+		// },
 		"microsoftdocs/mcp": {
 			"type": "http",
 			"url": "https://learn.microsoft.com/api/mcp",
@@ -21,6 +21,18 @@
 			"args": [
 				"bc-code-intelligence-mcp"
 			]
+		},
+		"bc-dev": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"bc-dev-mcp"
+			],
+			"env": {
+				"BC_DEV_USER": "admin",
+				"BC_DEV_PASSWORD": "admin"
+			}
 		}
 	},
 }
