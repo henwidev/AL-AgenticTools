@@ -8,7 +8,7 @@ applyTo: "**"
 When calling bc-dev MCP tools that accept connection parameters, pass these
 defaults unless the user explicitly specifies another target:
 
-- `server`: `"http://BC28"`
+- `server`: `"http://bc29"`
 - `serverInstance`: `"BC"`
 - `environmentType`: `"OnPrem"`
 

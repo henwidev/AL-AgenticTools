@@ -59,3 +59,4 @@ Extends or modifies existing Business Central API pages and queries in their own
 |---|---|
 | [BC Dev Connection Defaults](instructions/bc-dev-connection.instructions.md) | Uses `http://BC28`, server instance `BC`, and environment type `OnPrem` for supported bc-dev MCP connection parameters unless another target is specified. Does not configure `launch.json`. |
 | [Windows](instructions/windows.instructions.md) | Requires native Windows and PowerShell-compatible terminal commands; uses Linux commands only when explicitly targeting a Linux environment. |
+| [German tegossuite terminology](instructions/tegossuite-terminology.instructions.md) | Defines English-German domain translations for tegossuite/enwis documentation, changelogs, and user-facing text, including term-specific usage notes. |

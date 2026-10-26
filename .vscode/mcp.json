@@ -30,8 +30,8 @@
 				"bc-dev-mcp"
 			],
 			"env": {
-				"BC_DEV_USER": "admin",
-				"BC_DEV_PASSWORD": "admin"
+				"BC_DEV_USER": "a",
+				"BC_DEV_PASSWORD": "a"
 			}
 		}
 	},
