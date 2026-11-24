@@ -9,10 +9,10 @@ This repository contains custom GitHub Copilot agents, skills, and instructions 
 ### Featured agents
 
 #### AL PR Alignment Reviewer
-Verifies that the code changes on a branch are aligned with the specification and documentation before a pull request is opened. Produces three difference lists: **spec vs. documentation**, **spec vs. code**, and **code vs. documentation**. Use this as a final quality gate before raising a PR or for checking a PR that is in place already.
+Verifies that the code changes on a branch are aligned with the specification and documentation before a pull request is opened. Produces three difference lists: **spec vs. documentation**, **spec vs. code**, and **code vs. documentation**. Reads local task files by default; you can also supply text or paths directly. Use this as a final quality gate before raising a PR or for checking a PR that is in place already.
 
 #### AL Documentation Writer
-Writes or updates customer-facing functional documentation for an AL feature. It first runs a spec-vs-code difference check and waits for confirmation before writing structured bilingual (German/English) documentation into the `docs/` folder. Can also invoke the **AL Changelog Writer** to append the changelog entry in the same run. Hands off to the AL PR Alignment Reviewer when done.
+Writes or updates customer-facing functional documentation for an AL feature. It first runs a spec-vs-code difference check and waits for confirmation before writing documentation with the standard German/English headings. It saves `docs/{DOCUMENT-NUMBER}/diagnosis-comment-agent-de.md` or `diagnosis-comment-agent-en.md` alongside the task files, without overwriting an existing `diagnosis-comment.md`. Can also invoke the **AL Changelog Writer** to append the changelog entry in the same run. Hands off to the AL PR Alignment Reviewer when done.
 
 #### AL Changelog Writer
 Appends a single customer-facing one-liner to the `changelogs/` folder for the current feature branch. Derives the change summary from committed and uncommitted AL object changes on the branch. Keeps changelog entries positive, non-technical, and scoped to what the customer sees.
@@ -50,6 +50,7 @@ Extends or modifies existing Business Central API pages and queries in their own
 | **document-number** | Derives the ticket/document number from the current branch name. |
 | **git-branch-diff** | Returns the committed diff of the current branch versus the base branch. |
 | **gwt-scenario-review** | Reviews GIVEN-WHEN-THEN scenarios for completeness and structure. |
+| **task-details** | Finds `task-description.md`, optional `internal-comment.md`, and diagnosis documentation in the owning app's `docs/{DOCUMENT-NUMBER}/` folder, with a fallback to legacy flat documentation. Uses modification time to choose between same-priority language variants when the specification language is unclear. |
 
 ---
 
@@ -59,4 +60,4 @@ Extends or modifies existing Business Central API pages and queries in their own
 |---|---|
 | [BC Dev Connection Defaults](instructions/bc-dev-connection.instructions.md) | Uses `http://BC28`, server instance `BC`, and environment type `OnPrem` for supported bc-dev MCP connection parameters unless another target is specified. Does not configure `launch.json`. |
 | [Windows](instructions/windows.instructions.md) | Requires native Windows and PowerShell-compatible terminal commands; uses Linux commands only when explicitly targeting a Linux environment. |
-| [German tegossuite terminology](instructions/tegossuite-terminology.instructions.md) | Defines English-German domain translations for tegossuite/enwis documentation, changelogs, and user-facing text, including term-specific usage notes. |
+| [Weblate terminology](instructions/tegossuite-terminology.instructions.md) | Uses the configured `weblate-mcp` server to verify domain translations for tegossuite/enwis documentation and user-facing text. |

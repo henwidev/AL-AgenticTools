@@ -12,7 +12,7 @@ argument-hint: "Optional: the document number, if it cannot be derived from the 
 # Document Number (resolve ticket/document number from the branch)
 
 Return the **document number** of the current branch so a caller can name a ticket-scoped
-file (e.g. `changelogs/{DOCUMENT-NUMBER}.md` or `docs/{DOCUMENT-NUMBER}-{lang}.md`).
+file (e.g. `changelogs/{DOCUMENT-NUMBER}.md`) or directory (`docs/{DOCUMENT-NUMBER}/`).
 
 This skill is a **data provider only** — it returns the document number and nothing else.
 

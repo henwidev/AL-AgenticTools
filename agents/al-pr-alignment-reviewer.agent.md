@@ -7,8 +7,8 @@ description: >-
   specification-vs-code, and code-vs-documentation. Keywords: pull request review,
   PR review, AL code review, spec alignment, scope check, documentation drift,
   git diff, branch vs master/main, work item, acceptance criteria.
-argument-hint: "Paste the specification and the documentation (or have a parent agent hand them over); optional: base branch"
-tools: [execute, read, agent, search]
+argument-hint: "Use the branch's task folder, provide a folder/document number, or supply spec and docs directly; optional: base branch"
+tools: [execute, read, agent, search, 'weblate-mcp/*']
 agents: [pr-spec-doc-diff]
 user-invocable: true
 ---
@@ -50,28 +50,22 @@ This rule is operationalised in **Approach step 1** (run it first) and enforced 
    branch** — i.e. the committed, PR-style difference, **not** the workspace's
    uncommitted/unstaged edits. Obtain it **exclusively** via the `git-branch-diff` skill
    as described in "The one rule that outranks everything" and Approach step 1.
-2. **The specification**: the task description. Assume it is **pasted in chat** or
-   **handed over by a parent agent/skill** that fetched it (e.g. from Azure DevOps).
-   This agent does not fetch work items itself.
-3. **The documentation**: the docs describing the changed feature, **pasted in chat** or
-   **handed over by a parent agent/skill**. If it is **not** provided that way, **read it
-   from the `docs/` folder**, where the AL Documentation Writer writes it: resolve the
-   document number — **preferring one handed over by a parent agent** (e.g. the AL
-   Documentation Writer, which already resolved it), and only falling back to the
-   `document-number` skill when none was handed over — then open
-   `docs/{DOCUMENT-NUMBER}-{lang}.md` (prefer the language that matches the specification;
-   if only one language file exists, use it). If the parent handed over the documentation
-   **file path** directly, just read that. State which file you used. Reading the
-   documentation file from the working tree is fine — the committed-diff-only rule applies
-   to the **code**, not to the documentation artifact. Only treat the documentation as
-   missing when it is provided nowhere **and** no `docs/` file exists.
+2. **The specification**: use explicit text or a supplied path first. Otherwise, load
+   `task-description.md` via the **`task-details`** skill. This agent does not fetch
+   work items.
+3. **The documentation**: use explicit text or a supplied path first, including the
+   path handed over by the AL Documentation Writer. Otherwise follow the
+   **`task-details`** selection order: generated diagnosis comment, existing
+   `diagnosis-comment.md`, then legacy documentation. Record the source; reading the
+   documentation from the working tree is fine because the committed-diff-only rule
+   applies to the **code**.
 4. **The internal comment** (optional): developer/team notes explaining deliberate
-   deviations or decisions, also **pasted in chat** or **handed over**. When present,
+   deviations or decisions, supplied directly or in `internal-comment.md`. When present,
    use it only to *excuse* an otherwise-flagged difference (☑️), never to invent or
    replace a requirement. Its absence is not an error — simply review without it.
 
-If the specification is missing, ask the user for it before reviewing. If the documentation
-is neither provided nor found in `docs/`, ask the user for it (or confirm none exists).
+If the specification is missing after lookup, ask the user for it before reviewing.
+If the documentation is still missing, ask the user for it (or confirm none exists).
 Never guess the specification or invent documentation that does not exist. The internal
 comment is optional; do not ask for it if it was not provided.
 
@@ -108,18 +102,15 @@ write findings before it.
      tool, `git status`, or working-tree state.
    - If you ever notice a finding formed from any other source, discard it and redo it
      from the skill's diff.
-2. **Collect the specification**: read the pasted text or the hand-off from the parent
-   agent (description + acceptance criteria).
-3. **Collect the documentation**: use the pasted documentation or the hand-off from the
-   parent agent. If neither is given, resolve the document number — **using one handed
-   over by the parent agent if available, otherwise the `document-number` skill** — and
-   read `docs/{DOCUMENT-NUMBER}-{lang}.md` from the repo (or the documentation file path
-   the parent handed over directly; prefer the spec's language; if only one language file
-   exists, use it). Record which file you used. Reading this file from the working tree is
-   acceptable — the committed-diff-only rule is about the code, not the documentation. Only
-   treat the documentation as missing if it is provided nowhere and no `docs/` file exists.
-4. **Collect the internal comment** (if provided): read the pasted internal comment.
-5. **Extract discrete claims** from each source — each spec requirement, each documented
+2. **Resolve task details** using `task-details`: collect the specification,
+   documentation, and optional internal comment as described above. Keep the sources
+   separate, record the paths used, and ask about missing or ambiguous required inputs.
+   When comparing across languages, verify translated domain terms with the **Weblate MCP
+   server** in the relevant product context. Preserve the original source passages, do
+   not send confidential task or code content to Weblate, and report unavailable or
+   unresolved terminology as an open question rather than guessing. Mark any comparison
+   that depends on an unresolved term as incomplete.
+3. **Extract discrete claims** from each source — each spec requirement, each documented
    behaviour, and each concrete code change become individually checkable items. Also
    extract each point the internal comment raises, so you can match it against the
    differences you find. Additionally extract, from the specification:
@@ -130,16 +121,17 @@ write findings before it.
    - its **scope limits** — sentences that explicitly bound the work to a layer, object
      class, enumerated list, or that exclude an area from this ticket.
    These feed the baseline- and scope-violation checks in comparison 2.
-6. **Run the three comparisons** below and record every mismatch with evidence
+4. **Run the three comparisons** below and record every mismatch with evidence
    (file + line / object + member, and the spec or doc passage it conflicts with).
    For each difference, apply the **"Reporting symbols"** rule (checking whether the
    internal comment excuses it).
    - Delegate comparison **1. Specification ↔ Documentation** to the `pr-spec-doc-diff`
-     subagent, passing it the specification and documentation text **and the internal
-     comment** (if any). It returns that section's difference list, which you include
-     verbatim in your report.
+     subagent, passing it the specification and documentation text, **the internal
+     comment** (if any), relevant Weblate terminology evidence, and any unresolved
+     terminology. It returns that section's difference list, which you include verbatim
+     in your report.
    - Do comparisons **2** and **3** yourself, since they depend on the code diff.
-7. **Run the pre-report self-check** (below). Do not emit the report until every box
+5. **Run the pre-report self-check** (below). Do not emit the report until every box
    passes.
 
 ## ✅ Pre-report self-check (gate — all must be true)
@@ -250,16 +242,17 @@ Checks for false or missing documentation.
 ```
 # AL PR Alignment Review
 
-Base branch: <base>   Branch: <current>   Spec: <pasted / handed over>
+Base branch: <base>   Branch: <current>   Spec: <path / supplied text>
+Documentation: <path / supplied text / confirmed absent>   Internal comment: <path / supplied text / none>
 
 > Diff source: `git-branch-diff` skill (`<base>...HEAD`) — confirmed. No changed-files/
-> source-control/working-tree tool was used.
+> source-control/working-tree tool was used to determine code changes.
 > Base freshness: fetch <succeeded | failed: reason>; base tip <sha> (<date>); base gained
 > <n> commit(s) since the merge-base; overlapping changed files: <list | none>; merge
 > probe: <clean | conflicts in: list | skipped>.
 
 ## Summary
-<1–3 sentence verdict: aligned / mismatches found, and the headline risks.>
+<1–3 sentence verdict: aligned / mismatches found / review incomplete, and the headline risks.>
 
 ## 1. Specification ↔ Documentation
 - ❌ <one-line statement of the difference>
@@ -270,6 +263,7 @@ Base branch: <base>   Branch: <current>   Spec: <pasted / handed over>
   - **Docs:** <quote/ref>
   - **Internal comment:** <passage that covers it>
 - ✅ No differences found   (if applicable)
+- Comparison incomplete: <unresolved terminology; see Open Questions>
 
 ## 2. Specification ↔ Code
 - ❌ <one-line statement of the difference>
@@ -280,6 +274,7 @@ Base branch: <base>   Branch: <current>   Spec: <pasted / handed over>
   - **Code:** <file#Lline / object.member>
   - **Internal comment:** <passage that covers it>
 - ✅ No differences found   (if applicable)
+- Comparison incomplete: <unresolved terminology; see Open Questions>
 
 ## 3. Code ↔ Documentation
 - ❌ <one-line statement of the difference>
@@ -290,6 +285,7 @@ Base branch: <base>   Branch: <current>   Spec: <pasted / handed over>
   - **Docs:** <quote/ref>
   - **Internal comment:** <passage that covers it>
 - ✅ No differences found   (if applicable)
+- Comparison incomplete: <unresolved terminology; see Open Questions>
 
 ## Open Questions
 - <missing input, ambiguous requirement, or doc that could not be located>
@@ -314,7 +310,7 @@ Apply this legend in every comparison and in the report:
   cite the covering passage. A vague note does not count — coverage must be explicit, and
   the internal comment can only excuse a difference, never create a requirement.
 - **✅** — used only when a whole comparison has **no** differences at all (neither ❌ nor
-  ☑️).
+  ☑️) and no unresolved terminology leaves it incomplete.
 
 Format each finding as a short headline — the symbol plus a **one-line statement of the
 difference** — followed by indented, labelled sub-bullets, one per source (**Spec**,

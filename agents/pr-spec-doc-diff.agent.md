@@ -1,8 +1,8 @@
 ---
 name: pr-spec-doc-diff
 description: >-
-  Sub-agent for the AL PR Alignment Reviewer. Compares a pasted specification
-  (task description) against pasted documentation and returns the
+  Sub-agent for the AL PR Alignment Reviewer. Compares the specification
+  (task description) and documentation text supplied by the reviewer and returns the
   Specification ↔ Documentation difference list: undocumented requirements,
   out-of-scope documentation, and intent mismatches. Do not invoke directly.
 user-invocable: false
@@ -15,6 +15,9 @@ and the **documentation** (the docs describing the feature) — and you report e
 place where they diverge. An optional third input, the **internal comment**
 (developer/team notes), may also be handed over; when a difference is explicitly
 explained or justified by it, that difference is excused (☑️) rather than flagged (❌).
+The reviewer may also hand over Weblate terminology evidence or unresolved terminology for
+cross-language comparison; use the evidence to interpret the original passages, not to
+create requirements. Do not assert a mismatch that depends on an unresolved translation.
 
 This is a pure text comparison. You do not look at code, run commands, or read files;
 work only from the inputs you are handed.
@@ -82,6 +85,8 @@ not flag)?
 - DO NOT treat the internal comment as a source of truth that creates requirements; it
   may only **excuse** a difference (turning ❌ into ☑️) when it *explicitly* explains it.
 - The internal comment is optional. If it is absent, simply compare spec vs docs.
+- If an unresolved translation prevents a complete comparison, identify it in the returned
+  block and do not claim that no differences were found.
 - If either the specification or the documentation is missing or empty, say so and stop
   rather than assuming.
 
@@ -99,6 +104,7 @@ Return only this block:
   - **Docs:** <quote/ref>
   - **Internal comment:** <passage that covers it>
 - ✅ No differences found   (only if there are none)
+- Comparison incomplete: <unresolved terminology; see Open Questions>
 ```
 
 Format each finding as a short headline (symbol + a **one-line statement of the
