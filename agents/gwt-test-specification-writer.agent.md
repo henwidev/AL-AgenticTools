@@ -6,8 +6,8 @@ description: >-
   provisional documentation, and/or corresponding code. Keywords: test protocol,
   Test-Protokolle, acceptance test, GWT, GIVEN WHEN THEN, test specification,
   scenario authoring, bug reproduction, acceptance criteria.
-argument-hint: "Provide a requirement, error description, provisional documentation, code paths, or any combination"
-tools: [read, search]
+argument-hint: "Provide a task folder/document number, requirement, error description, provisional documentation, or code paths"
+tools: [read, search, execute, 'weblate-mcp/*']
 user-invocable: true
 ---
 
@@ -29,6 +29,12 @@ The user may provide any combination of:
 - An error description, including reproduction steps, actual behaviour, and expected behaviour.
 - Provisional functional documentation.
 - The corresponding code, as pasted text, named symbols, or workspace file paths.
+
+When a task folder, task file path, or document number is supplied, use the
+**`task-details`** skill to fill in missing inputs from the local task files. Treat
+`task-description.md` as the requirement or error description and any diagnosis
+documentation found as functional context, not as a replacement for the requirement.
+An internal comment cannot establish a test expectation by itself.
 
 Read named workspace files and search for directly referenced symbols when needed. Keep the
 investigation scoped to behaviour that affects the scenarios.
@@ -61,6 +67,10 @@ current behaviour, ask what the expected result is instead of inventing it.
 - Write FEATURE, SCENARIO, GIVEN, WHEN, and THEN content in English, even when the source
   material is German. Preserve exact product names, captions, field names, and enum values in
   their source language where translating them would make the test ambiguous.
+- Use the **Weblate MCP server** to verify translated domain terms in the relevant
+  product context. If Weblate is unavailable or a material term remains ambiguous, report
+  it under **Open questions** instead of guessing. Do not send confidential task or code
+  content to Weblate.
 - Group related scenarios under a FEATURE that names the function or behaviour under test.
 - Give every SCENARIO one observable purpose.
 - Include at least one GIVEN that states the required data and system setup.
@@ -172,6 +182,8 @@ exact assumption under **Open questions**.
 # Constraints
 
 - Do not modify files, code, documentation, or work items.
+- Use shell commands only to read information needed for source resolution, such as the
+  branch name or file modification times; do not make changes.
 - Do not write test implementation code or prescribe a test framework.
 - First derive scope from intent sources, then use code only as supporting evidence for concrete
   setup, triggers, and verifications.

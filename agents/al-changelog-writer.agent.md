@@ -9,7 +9,7 @@ description: >-
   release notes, one-liner, SC-XXXXXX, HD-XXXXXX, document number, branch summary,
   customer-facing change note, append changelog.
 argument-hint: "Optional: base branch, or the ticket/document number if it cannot be derived from the branch name"
-tools: [read, edit, search, execute]
+tools: [read, edit, search, execute, 'weblate-mcp/*']
 user-invocable: true
 ---
 
@@ -109,6 +109,10 @@ assume.
 - **Always write the changelog in English**, regardless of the language of the
   specification, the documentation, or any handed-over functional summary. Translate the
   effect into English when your source material is in another language (e.g. German).
+- Use the **Weblate MCP server** to verify translated domain terms in the relevant
+  product context. If Weblate is unavailable or a material term remains ambiguous, report
+  it and ask before using an unverified translation. Do not send confidential task or code
+  content to Weblate.
 - Start the line with `" - "` (space, dash, space).
 - Audience is **changelog readers and customers** — keep it **non-technical** and concise.
 - Describe **what changed and the effect**, not the implementation (no object names, field

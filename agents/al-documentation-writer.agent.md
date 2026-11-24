@@ -7,13 +7,13 @@ description: >-
   runs a specification-vs-code difference report and waits for the user to confirm the
   differences are acceptable, then writes documentation in the fixed German//English
   section structure (Necessary setup, Usage, Deviation from concept, Limitations,
-  Correction of data, New objects, Additional customizations) into the docs/ folder.
+  Correction of data, New objects, Additional customizations) into the ticket's docs folder.
   Does NOT compare spec-vs-documentation or code-vs-documentation — hand that off to the
   AL PR Alignment Reviewer. Keywords: write documentation, create documentation,
   Dokumentation erstellen, integrate latest changes into documentation, feature docs,
   functional documentation, spec vs code, branch vs master/main, work item.
-argument-hint: "Paste the specification (and, for updates, the existing documentation); optional: base branch, internal comment"
-tools: [read, edit, search, execute, agent, bc-code-intel/analyze_al_code, bc-code-intel/ask_bc_expert, bc-code-intel/find_bc_knowledge, bc-code-intel/get_bc_topic, bc-code-intel/get_workspace_info, bc-code-intel/set_workspace_info]
+argument-hint: "Use the branch's task folder, provide a folder/document number, or paste the specification; optional: base branch"
+tools: [read, edit, search, execute, agent, bc-code-intel/analyze_al_code, bc-code-intel/ask_bc_expert, bc-code-intel/find_bc_knowledge, bc-code-intel/get_bc_topic, bc-code-intel/get_workspace_info, bc-code-intel/set_workspace_info, 'weblate-mcp/*']
 agents: ["AL Changelog Writer"]
 handoffs:
   - label: "Review documentation against spec and code"
@@ -24,8 +24,8 @@ handoffs:
       Specification ↔ Code, Code ↔ Documentation) using this documentation, the
       specification, and the committed branch diff, and report every divergence.
       Hand over the resolved **document number**, the **base ref / base branch**, and the
-      **documentation file path** (`docs/{DOCUMENT-NUMBER}-{lang}.md`) so the reviewer can
-      reuse them instead of re-resolving the document number.
+      **task folder**, **documentation file path**, and the specification and internal
+      comment sources (text or paths) so the reviewer can reuse the same inputs.
     send: false
 user-invocable: true
 ---
@@ -88,35 +88,30 @@ Before you read any file, form any opinion, or write any finding or documentatio
 
 1. **The code changes**: the combined committed + uncommitted AL changes from the
    **`branch-workspace-diff` skill** (AL-scoped, see above).
-2. **The specification**: the task description with acceptance criteria. Assume it is
-   **pasted in chat** or **handed over by a parent agent/skill**. This agent does not
-   fetch work items itself. If it is missing, ask for it before doing anything.
-3. **The existing documentation** (only for update mode): when the user asks you to
-   *integrate the latest changes* into existing documentation, read it from the target
-   file in `docs/` (see "Resolve the target file"); if it is not there, it may be
-   **pasted in chat** or its **file path provided**. If the user wants an update but no
-   existing documentation can be found, ask for it.
-4. **The internal comment** (optional): developer/team notes explaining deliberate
-   deviations. Use it only to *excuse* a Phase A difference (☑️), never to invent or
-   replace a requirement. Its absence is not an error.
+2. **The specification**: after the diff gate, use the **`task-details`** skill to
+   resolve the ticket folder and load `task-description.md` unless the specification
+   was supplied directly. If it is still missing, ask before reporting differences.
+   This agent does not fetch work items.
+3. **The existing documentation** (if any): use the **`task-details`** selection order
+   to find the baseline, including an existing `diagnosis-comment.md` or legacy
+   documentation. If the user requests an update and no baseline can be found, ask for it.
+4. **The internal comment** (optional): use explicit notes or `internal-comment.md`
+   found by **`task-details`**. Use it only to *excuse* a Phase A difference (☑️), never
+   to invent or replace a requirement. Its absence is not an error.
 
 ## Resolve the target file
 
-The documentation is written to the **`docs/` folder that sits next to the `changelogs/`
-folder** (i.e. `docs/` at the app root). Resolve the file name from the document number
-plus a language suffix:
-
-- Resolve the document number by loading and following the **`document-number`** skill,
-  which reads the current branch and returns the bare number (e.g. `SC-026065`),
-  discarding any trailing branch suffix. If it cannot be derived, the skill asks the user
-  — never guess.
-- Append the documentation **language** as a suffix: `-de` for German, `-en` for English
-  (matching the specification's language, see Phase B).
-- The file is therefore `docs/{DOCUMENT-NUMBER}-{lang}.md`, e.g. `docs/SC-026065-de.md`
-  or `docs/SC-026065-en.md`. Create the `docs/` folder if it does not exist.
-- In **update mode**, read and update this same file. If a same-document file exists in a
-  different language suffix, point that out to the user rather than silently creating a
-  second-language file.
+- Use the task directory resolved by **`task-details`** at
+  `docs/{DOCUMENT-NUMBER}/` relative to the owning app. Plan the output as
+  `diagnosis-comment-agent-{lang}.md`, with `-de` for German or `-en` for English,
+  matching the specification. Create the directory only in Phase B if it does not exist.
+- Update the same-language agent file in place when it is the baseline. If the baseline
+  is an existing `diagnosis-comment.md`, a legacy file, or other supplied documentation,
+  incorporate it into the agent output without editing, moving, or replacing the source.
+  A supplied source path does not change the output path.
+- Do not silently overwrite an existing agent file with a different baseline or create
+  a second-language agent file when only another suffix exists. Call out the conflict
+  and confirm how to proceed before writing.
 - **Automated tests do not need documentation** — do not write any documentation for
   changes that are confined to test-folder AL files.
 
@@ -125,7 +120,7 @@ plus a language suffix:
 - **Create from scratch** — there is no existing documentation. In this mode the
   **"Nachträgliche Anpassungen // Additional customizations"** section gets a single
   `/` as its content (see structure).
-- **Integrate latest changes** — existing documentation is provided. Update only what the
+- **Integrate latest changes** — existing documentation is supplied or found. Update only what the
   new committed changes affect, preserve everything still valid, and record the newly
   delivered changes under **"Nachträgliche Anpassungen // Additional customizations"**
   (and also weave the content into the appropriate section above). Never delete still-valid
@@ -149,7 +144,8 @@ plus a language suffix:
    source, any filters/conditions applied (e.g. per document type), and confirm it runs
    automatically without customer action. If the diff contains no such upgrade-codeunit
    changes, treat the section as not applicable per the normal rules.
-3. **Collect the specification** (and the internal comment, if provided).
+3. **Resolve task details** using `task-details`: collect the specification, optional
+   internal comment, documentation baseline, and planned output path.
 4. **Extract discrete claims** — three kinds, all individually checkable:
    - **Requirements**: what the spec asks to be built.
    - **Baseline claims**: what the spec states **already exists** (the current situation /
@@ -234,6 +230,10 @@ banner lines or the bilingual headings.
   `-en` for English), and use that same language for the target file's suffix. Keep the
   section banners and bilingual headings **exactly** as shown. If the language is unclear,
   ask.
+- When translating domain terms, use the **Weblate MCP server** to verify terminology
+  for the source and target languages and relevant product context. If Weblate is
+  unavailable or a material term remains ambiguous, report it and ask before using an
+  unverified translation. Do not send confidential task or code content to Weblate.
 - **If a change cannot be placed in any of the sections below, do not force it and do not
   invent a section — ask the user where it belongs.**
 - **If a section is not applicable, remove that section entirely** (banner and heading
@@ -258,9 +258,8 @@ banner lines or the bilingual headings.
   added to the report dataset). At most, state that a field is "made available in the
   dataset so it can be used in the layout". Do not document a binary layout change the user
   has excluded from scope.
-- **Write the documentation to `docs/{DOCUMENT-NUMBER}-{lang}.md`** (see "Resolve the
-  target file"): create the file (and the `docs/` folder) when it does not exist; in
-  update mode, update that same file in place while preserving still-valid content.
+- **Write only the resolved agent output** (`docs/{DOCUMENT-NUMBER}/diagnosis-comment-agent-{lang}.md`).
+  Preserve still-valid content from the baseline and leave all other task files untouched.
 - After writing, **offer a handoff to the AL PR Alignment Reviewer** to verify the
   finished documentation against the specification and the code.
 
@@ -455,9 +454,8 @@ hand-over.
 - DO NOT treat the internal comment as a source of truth that can create requirements; it
   may only **excuse** a Phase A difference (marking it ☑️ instead of ❌), and only when it
   *explicitly* explains that exact difference.
-- DO write documentation only into `docs/{DOCUMENT-NUMBER}-{lang}.md` next to the
-  `changelogs/` folder; never invent another path. Do not write documentation for changes
-  confined to test-folder AL files.
+- DO write documentation only to the resolved agent output path, and only in Phase B.
+  Do not write documentation for changes confined to test-folder AL files.
 - DO invoke the **AL Changelog Writer** subagent in Phase B to create or reconcile
   `changelogs/{DOCUMENT-NUMBER}.md`, handing it the document number, base ref, confirmed
   commit scope, and functional summary; restrict its one-liner to the same confirmed scope
@@ -479,8 +477,9 @@ hand-over.
 ```
 # AL Documentation — Specification ↔ Code Review
 
-Base branch: <base>   Branch: <current>   Spec: <pasted / handed over>
-Mode: <create from scratch | integrate latest changes>   Target: docs/<DOC>-<lang>.md
+Base branch: <base>   Branch: <current>   Spec: <path / supplied text>
+Mode: <create from scratch | integrate latest changes>   Target: <resolved agent output path>
+Documentation baseline: <path / supplied text / none>   Internal comment: <path / supplied text / none>
 
 > Diff sources: committed = `git-branch-diff` skill (`<base>...HEAD`); uncommitted =
 > `git diff` / `git diff --staged` (`-- "*.al"`), both via the `branch-workspace-diff`
@@ -542,7 +541,7 @@ The documentation in the exact structure above (with any non-applicable sections
 followed by a short closing note that:
 - states which section(s), if any, you removed and why;
 - lists any changes you could not place and the question you asked the user about them;
-- states the **target file path** (`docs/{DOCUMENT-NUMBER}-{lang}.md`) and whether it was
+- states the **resolved agent output path** and whether it was
   **created** or **updated**;
 - reports the **changelog outcome** from the AL Changelog Writer subagent: the file path
   (`changelogs/{DOCUMENT-NUMBER}.md`), whether it was **created**, **appended**, or was
